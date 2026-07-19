@@ -2,384 +2,248 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Screenshot Merger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Isolation Filter</title>
     <style>
-        /* CSS Section */
-        :root {
-            --bg-color: #000000;
-            --fg-color: #ffffff;
-        }
-
         body {
-            background-color: var(--bg-color);
-            color: var(--fg-color);
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        /* Header & Controls */
-        header {
-            display: flex;
-            gap: 10px;
-            padding: 15px;
-            border-bottom: 1px solid var(--fg-color);
-            background-color: var(--bg-color);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        button {
-            flex: 1;
-            background-color: var(--bg-color);
-            color: var(--fg-color);
-            border: 1px solid var(--fg-color);
-            padding: 15px 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            touch-action: manipulation;
-            word-wrap: break-word;
-        }
-
-        button:active {
-            background-color: var(--fg-color);
-            color: var(--bg-color);
-        }
-
-        button:disabled {
-            border-color: #555555;
-            color: #555555;
-            cursor: not-allowed;
-            background-color: var(--bg-color);
-        }
-
-        /* Hidden Input */
-        #fileInput {
-            display: none;
-        }
-
-        /* Status & Preview */
-        #status {
-            text-align: center;
-            padding: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            min-height: 20px;
-            border-bottom: 1px solid #333333;
-        }
-
-        #previewArea {
-            flex: 1;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px 10px;
+            padding: 20px;
+            margin: 0;
         }
 
-        canvas {
+        h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #a0a0a0;
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .controls {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            color: #a0a0a0;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+        }
+
+        .value-display {
+            font-mono: monospace;
+            width: 30px;
+            text-align: right;
+        }
+
+        .viewports {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .panel {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .img-container {
+            width: 100%;
+            min-height: 300px;
+            background-color: #0b0b0b;
+            border: 2px dashed #333;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        img, canvas {
             max-width: 100%;
-            height: auto;
-            border: 1px solid var(--fg-color);
-            box-sizing: border-box;
-        }
-
-        /* Responsive */
-        @media (max-width: 400px) {
-            header {
-                flex-direction: column;
-            }
+            max-height: 450px;
+            object-fit: contain;
         }
     </style>
 </head>
 <body>
 
-    <!-- HTML Section -->
-    <header>
-        <button id="uploadBtn">Upload Screenshots</button>
-        <button id="downloadBtn" disabled>Download Merged</button>
-        <input type="file" id="fileInput" multiple accept="image/png, image/jpeg, image/webp">
-    </header>
+    <h1>Shadow & Dark Tone Isolator</h1>
+    <p>Upload an image. Colors and bright spots turn black. Shades of black turn white.</p>
 
-    <div id="status">Ready. Select screenshots to begin.</div>
-
-    <div id="previewArea">
-        <!-- Merged canvas will be appended here -->
+    <div class="controls">
+        <div class="control-group">
+            <label for="upload">Choose an Image</label>
+            <input type="file" id="upload" accept="image/*">
+        </div>
+        
+        <div class="control-group">
+            <label for="threshold">Darkness Threshold (0 - 255)</label>
+            <div class="slider-container">
+                <input type="range" id="threshold" min="0" max="255" value="60">
+                <span id="threshold-val" class="value-display">60</span>
+            </div>
+            <small style="color: #777;">Higher values capture lighter shades of gray/dark colors.</small>
+        </div>
     </div>
 
-    <!-- JavaScript Section -->
+    <div class="viewports">
+        <div class="panel">
+            <h3>Original Image</h3>
+            <div class="img-container">
+                <img id="original-preview" src="" alt="No image uploaded yet" style="display: none;">
+                <span id="orig-placeholder" style="color: #555;">Waiting for file...</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Filtered Output</h3>
+            <div class="img-container">
+                <canvas id="output-canvas" style="display: none;"></canvas>
+                <span id="canvas-placeholder" style="color: #555;">Waiting for file...</span>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // DOM Elements
-        const uploadBtn = document.getElementById('uploadBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const fileInput = document.getElementById('fileInput');
-        const statusEl = document.getElementById('status');
-        const previewArea = document.getElementById('previewArea');
+        const upload = document.getElementById('upload');
+        const thresholdSlider = document.getElementById('threshold');
+        const thresholdVal = document.getElementById('threshold-val');
+        const originalPreview = document.getElementById('original-preview');
+        const outputCanvas = document.getElementById('output-canvas');
+        
+        const origPlaceholder = document.getElementById('orig-placeholder');
+        const canvasPlaceholder = document.getElementById('canvas-placeholder');
 
-        // State
-        let mergedBlob = null;
+        let loadedImage = null;
 
-        // Event Listeners
-        uploadBtn.addEventListener('click', () => {
-            fileInput.click();
+        // Handle image upload
+        upload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                loadedImage = new Image();
+                loadedImage.onload = function() {
+                    // Show elements and hide placeholders
+                    originalPreview.src = event.target.result;
+                    originalPreview.style.display = 'block';
+                    origPlaceholder.style.display = 'none';
+                    
+                    outputCanvas.style.display = 'block';
+                    canvasPlaceholder.style.display = 'none';
+
+                    // Run the filter
+                    processImage();
+                };
+                loadedImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
 
-        fileInput.addEventListener('change', handleFiles);
+        // Update threshold text and re-process image when slider moves
+        thresholdSlider.addEventListener('input', function() {
+            thresholdVal.textContent = this.value;
+            if (loadedImage) {
+                processImage();
+            }
+        });
 
-        downloadBtn.addEventListener('click', downloadMergedImage);
+        // The core image processing engine
+        function processImage() {
+            if (!loadedImage) return;
 
-        // Core Logic
-        async function handleFiles(event) {
-            const files = Array.from(event.target.files);
-            if (files.length === 0) return;
-
-            // Reset state
-            downloadBtn.disabled = true;
-            previewArea.innerHTML = '';
-            mergedBlob = null;
-
-            statusEl.textContent = 'Loading images...';
+            const ctx = outputCanvas.getContext('2d');
             
-            const images = await loadImages(files);
+            // Match canvas size to the source image
+            outputCanvas.width = loadedImage.naturalWidth;
+            outputCanvas.height = loadedImage.naturalHeight;
+
+            // Draw original image onto the canvas to grab its pixels
+            ctx.drawImage(loadedImage, 0, 0);
+
+            // Fetch the pixel array
+            const imgData = ctx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+            const data = imgData.data;
             
-            if (images.length === 0) {
-                statusEl.textContent = 'Error: No valid images loaded.';
-                return;
-            }
+            // Get current slider threshold value
+            const threshold = parseInt(thresholdSlider.value, 10);
 
-            if (images.length === 1) {
-                statusEl.textContent = 'Only one image selected. Merging skipped.';
-                displayCanvas(images[0]);
-                return;
-            }
+            // Step through every pixel (4 elements per pixel: Red, Green, Blue, Alpha)
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];     // Red channel
+                const g = data[i + 1]; // Green channel
+                const b = data[i + 2]; // Blue channel
 
-            statusEl.textContent = 'Detecting overlap and merging...';
-            
-            // Allow UI to update before heavy processing
-            await yieldToMain(); 
-
-            try {
-                const finalCanvas = await mergeScreenshots(images);
-                displayCanvas(finalCanvas);
-                
-                statusEl.textContent = 'Preparing download...';
-                await yieldToMain();
-                
-                finalCanvas.toBlob((blob) => {
-                    mergedBlob = blob;
-                    downloadBtn.disabled = false;
-                    statusEl.textContent = 'Ready to download.';
-                }, 'image/png');
-
-            } catch (error) {
-                statusEl.textContent = 'Error during merging: ' + error.message;
-            }
-        }
-
-        // Image Loader
-        function loadImages(files) {
-            return new Promise((resolve) => {
-                const images = [];
-                let loadedCount = 0;
-
-                files.forEach((file, index) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            images[index] = img; // Preserve order
-                            loadedCount++;
-                            if (loadedCount === files.length) {
-                                resolve(images.filter(img => img !== undefined));
-                            }
-                        };
-                        img.onerror = () => {
-                            // Skip failed images
-                            loadedCount++;
-                            if (loadedCount === files.length) {
-                                resolve(images.filter(img => img !== undefined));
-                            }
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                });
-            });
-        }
-
-        // Main Merging Algorithm
-        async function mergeScreenshots(images) {
-            const crops = [0]; // First image has 0 crop
-
-            for (let i = 1; i < images.length; i++) {
-                statusEl.textContent = `Detecting overlap: Image ${i} of ${images.length - 1}...`;
-                await yieldToMain();
-                
-                const overlap = calculateOverlap(images[i - 1], images[i]);
-                crops.push(overlap);
-            }
-
-            statusEl.textContent = 'Generating final merged image...';
-            await yieldToMain();
-
-            // Calculate final dimensions
-            let totalWidth = 0;
-            let totalHeight = 0;
-
-            for (let i = 0; i < images.length; i++) {
-                if (images[i].width > totalWidth) {
-                    totalWidth = images[i].width;
+                // Decision rule: Is the pixel dark enough to count as a shade of black?
+                // Checks if Red, Green, AND Blue are all under the threshold.
+                if (r < threshold && g < threshold && b < threshold) {
+                    // Turn it white
+                    data[i] = 255;     // R
+                    data[i + 1] = 255; // G
+                    data[i + 2] = 255; // B
+                } else {
+                    // Turn it black
+                    data[i] = 0;       // R
+                    data[i + 1] = 0;   // G
+                    data[i + 2] = 0;   // B
                 }
-                totalHeight += (images[i].height - crops[i]);
+                // data[i+3] is Alpha (transparency), we leave it untouched (255)
             }
 
-            // Create final canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = totalWidth;
-            canvas.height = totalHeight;
-            const ctx = canvas.getContext('2d');
-
-            // Draw pure black background for any empty space
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            let currentY = 0;
-
-            for (let i = 0; i < images.length; i++) {
-                const img = images[i];
-                const cropTop = crops[i];
-                const drawHeight = img.height - cropTop;
-                
-                // Center if width is smaller than max width
-                const drawX = Math.floor((totalWidth - img.width) / 2);
-
-                ctx.drawImage(
-                    img,
-                    0, cropTop, img.width, drawHeight, // Source (x, y, w, h)
-                    drawX, currentY, img.width, drawHeight // Destination (x, y, w, h)
-                );
-
-                currentY += drawHeight;
-            }
-
-            return canvas;
-        }
-
-        // Overlap Detection Algorithm
-        function calculateOverlap(img1, img2) {
-            // Compare the middle 60% of the image to avoid scrollbars
-            const compareWidth = Math.floor(Math.min(img1.width, img2.width) * 0.6);
-            if (compareWidth <= 0) return 0;
-
-            const startX1 = Math.floor((img1.width - compareWidth) / 2);
-            const startX2 = Math.floor((img2.width - compareWidth) / 2);
-
-            // Maximum overlap to check (avoid checking tiny 1px overlaps to prevent false positives)
-            const maxOverlap = Math.min(img1.height, img2.height, 3000);
-            const minOverlap = 20;
-
-            // Extract pixel data using offscreen canvases
-            const canvas1 = document.createElement('canvas');
-            canvas1.width = compareWidth; 
-            canvas1.height = maxOverlap;
-            const ctx1 = canvas1.getContext('2d', { willReadFrequently: true });
-            
-            // Draw bottom of img1
-            ctx1.drawImage(img1, startX1, img1.height - maxOverlap, compareWidth, maxOverlap, 0, 0, compareWidth, maxOverlap);
-            const data1 = ctx1.getImageData(0, 0, compareWidth, maxOverlap).data;
-
-            const canvas2 = document.createElement('canvas');
-            canvas2.width = compareWidth; 
-            canvas2.height = maxOverlap;
-            const ctx2 = canvas2.getContext('2d', { willReadFrequently: true });
-            
-            // Draw top of img2
-            ctx2.drawImage(img2, startX2, 0, compareWidth, maxOverlap, 0, 0, compareWidth, maxOverlap);
-            const data2 = ctx2.getImageData(0, 0, compareWidth, maxOverlap).data;
-
-            // Optimization parameters
-            const stepX = 8; // Sample every 8th pixel horizontally
-            const stepY = 2; // Sample every 2nd pixel vertically
-            const tolerancePerChannel = 12; // Tolerate minor color/compression differences
-            const avgTolerance = 6; 
-
-            // Scan from largest possible overlap down to smallest
-            for (let overlap = maxOverlap; overlap >= minOverlap; overlap--) {
-                let totalDiff = 0;
-                let pixelsChecked = 0;
-                let isMatch = true;
-
-                const yOffset1 = maxOverlap - overlap; // Start reading img1 from here
-                const yOffset2 = 0;                    // Start reading img2 from top
-
-                for (let y = 0; y < overlap; y += stepY) {
-                    const row1 = y + yOffset1;
-                    const row2 = y + yOffset2;
-
-                    for (let x = 0; x < compareWidth; x += stepX) {
-                        const idx1 = (row1 * compareWidth + x) * 4;
-                        const idx2 = (row2 * compareWidth + x) * 4;
-
-                        const rDiff = Math.abs(data1[idx1] - data2[idx2]);
-                        const gDiff = Math.abs(data1[idx1+1] - data2[idx2+1]);
-                        const bDiff = Math.abs(data1[idx1+2] - data2[idx2+2]);
-
-                        // Strict pixel mismatch detection
-                        if (rDiff > tolerancePerChannel || gDiff > tolerancePerChannel || bDiff > tolerancePerChannel) {
-                            // Allow a small overall divergence sum before failing the entire row
-                            const diffSum = rDiff + gDiff + bDiff;
-                            if (diffSum > 40) {
-                                isMatch = false;
-                                break;
-                            }
-                        }
-
-                        totalDiff += (rDiff + gDiff + bDiff) / 3;
-                        pixelsChecked++;
-                    }
-                    if (!isMatch) break;
-                }
-
-                if (isMatch && pixelsChecked > 0) {
-                    const avgDiff = totalDiff / pixelsChecked;
-                    if (avgDiff <= avgTolerance) {
-                        return overlap;
-                    }
-                }
-            }
-
-            return 0; // No overlap detected
-        }
-
-        // Helper to output to DOM
-        function displayCanvas(canvas) {
-            previewArea.innerHTML = '';
-            previewArea.appendChild(canvas);
-        }
-
-        // Helper to download blob
-        function downloadMergedImage() {
-            if (!mergedBlob) return;
-            const url = URL.createObjectURL(mergedBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'merged_screenshot.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        // Helper to prevent UI freezing
-        function yieldToMain() {
-            return new Promise(resolve => setTimeout(resolve, 50));
+            // Repaint the modified pixels back down onto the canvas canvas
+            ctx.putImageData(imgData, 0, 0);
         }
     </script>
 </body>
