@@ -3,247 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shadow Isolation Filter</title>
+    <title>Advanced Multi-Image Shadow Isolator</title>
+    
+    <!-- Third-party libraries for purely client-side ZIP & PDF downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: #121212;
             color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
+            padding: 30px 20px;
             margin: 0;
-        }
-
-        h1 {
-            color: #ffffff;
-            margin-bottom: 10px;
-        }
-
-        p {
-            color: #a0a0a0;
-            max-width: 600px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .controls {
-            background-color: #1e1e1e;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 30px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        label {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        input[type="file"] {
-            color: #a0a0a0;
-        }
-
-        .slider-container {
-            display: flex;
             align-items: center;
-            gap: 10px;
         }
 
-        input[type="range"] {
-            flex-grow: 1;
-        }
+        h1 { color: #ffffff; margin-bottom: 5px; font-weight: 600; }
+        .subtitle { color: #888; margin-bottom: 30px; text-align: center; }
 
-        .value-display {
-            font-mono: monospace;
-            width: 30px;
-            text-align: right;
-        }
-
-        .viewports {
-            display: flex;
-            gap: 25px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            max-width: 1200px;
-        }
-
-        .panel {
+        .dashboard {
             background-color: #1e1e1e;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* Custom File Input button style */
+        .file-upload-btn {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .file-upload-btn:hover { background-color: #1d4ed8; }
+        input[type="file"] { display: none; }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background-color: #059669; color: white; }
+        .btn-primary:hover { background-color: #047857; }
+        
+        .btn-secondary { background-color: #374151; color: #e5e7eb; }
+        .btn-secondary:hover { background-color: #4b5563; }
+
+        /* Dropdown Layout */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #2a2a2a;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.5);
+            border-radius: 6px;
+            z-index: 10;
+            overflow: hidden;
+        }
+        .dropdown-content a {
+            color: #e0e0e0;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .dropdown-content a:hover { background-color: #3f3f3f; color: #fff; }
+        .show { display: block; }
+
+        /* Threshold Mode Configuration */
+        .threshold-config {
+            background-color: #161616;
             padding: 15px;
             border-radius: 8px;
-            text-align: center;
-            flex: 1;
-            min-width: 300px;
-            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid #2d2d2d;
         }
-
-        .panel h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #ffffff;
+        .mode-toggle {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .slider-wrapper.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        input[type="range"] { flex-grow: 1; accent-color: #2563eb; }
 
-        .img-container {
+        /* Gallery/Preview Grid layout */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
             width: 100%;
-            min-height: 300px;
+            max-width: 940px;
+            margin-top: 25px;
+        }
+        .image-card {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #2d2d2d;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .card-title {
+            font-size: 13px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .view-box {
             background-color: #0b0b0b;
-            border: 2px dashed #333;
-            border-radius: 6px;
+            border-radius: 4px;
+            height: 200px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
         }
-
-        img, canvas {
+        .view-box canvas {
             max-width: 100%;
-            max-height: 450px;
+            max-height: 100%;
             object-fit: contain;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #334155;
+            color: #94a3b8;
+            align-self: flex-start;
         }
     </style>
 </head>
 <body>
 
-    <h1>Shadow & Dark Tone Isolator</h1>
-    <p>Upload an image. Colors and bright spots turn black. Shades of black turn white.</p>
+    <h1>Advanced Batch Shadow Isolator</h1>
+    <div class="subtitle">Convert deep shadows/blacks into pure white, and strip colorful or light pixels into solid black backgrounds.</div>
 
-    <div class="controls">
-        <div class="control-group">
-            <label for="upload">Choose an Image</label>
-            <input type="file" id="upload" accept="image/*">
-        </div>
-        
-        <div class="control-group">
-            <label for="threshold">Darkness Threshold (0 - 255)</label>
-            <div class="slider-container">
-                <input type="range" id="threshold" min="0" max="255" value="60">
-                <span id="threshold-val" class="value-display">60</span>
+    <div class="dashboard">
+        <div class="action-bar">
+            <label class="file-upload-btn" for="upload">Upload Images</label>
+            <input type="file" id="upload" accept="image/*" multiple>
+            
+            <button class="btn-primary" id="btn-convert">Convert Batch</button>
+            <button class="btn-secondary" id="btn-reset">Reset</button>
+            
+            <!-- Download Options Menu -->
+            <div class="dropdown" style="margin-left: auto;">
+                <button class="btn-secondary" id="download-dropdown-btn" style="background-color: #047857; color: white;">Download ▼</button>
+                <div class="dropdown-content" id="download-menu">
+                    <a id="download-zip-item">Download as Images (ZIP)</a>
+                    <a id="download-pdf-item">Download as Single PDF</a>
+                    <a id="download-single-item" style="display:none;">Download Filtered Image</a>
+                </div>
             </div>
-            <small style="color: #777;">Higher values capture lighter shades of gray/dark colors.</small>
+        </div>
+
+        <div class="threshold-config">
+            <div class="mode-toggle">
+                <label style="font-weight: 600;">Threshold Calculation Engine:</label>
+                <input type="radio" id="mode-auto" name="th-mode" value="auto" checked>
+                <label for="mode-auto">Adaptive Auto-Detect (Otsu Analysis)</label>
+                
+                <input type="radio" id="mode-manual" name="th-mode" value="manual">
+                <label for="mode-manual">Manual Override</label>
+            </div>
+            
+            <div class="slider-wrapper" id="slider-container">
+                <label for="manual-threshold">Global Adjust Threshold:</label>
+                <input type="range" id="manual-threshold" min="0" max="255" value="60">
+                <span id="slider-val" style="font-family: monospace; width: 30px;">60</span>
+            </div>
         </div>
     </div>
 
-    <div class="viewports">
-        <div class="panel">
-            <h3>Original Image</h3>
-            <div class="img-container">
-                <img id="original-preview" src="" alt="No image uploaded yet" style="display: none;">
-                <span id="orig-placeholder" style="color: #555;">Waiting for file...</span>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h3>Filtered Output</h3>
-            <div class="img-container">
-                <canvas id="output-canvas" style="display: none;"></canvas>
-                <span id="canvas-placeholder" style="color: #555;">Waiting for file...</span>
-            </div>
-        </div>
-    </div>
+    <!-- Live Dynamic Batch Previews -->
+    <div class="preview-grid" id="preview-container"></div>
 
     <script>
-        const upload = document.getElementById('upload');
-        const thresholdSlider = document.getElementById('threshold');
-        const thresholdVal = document.getElementById('threshold-val');
-        const originalPreview = document.getElementById('original-preview');
-        const outputCanvas = document.getElementById('output-canvas');
-        
-        const origPlaceholder = document.getElementById('orig-placeholder');
-        const canvasPlaceholder = document.getElementById('canvas-placeholder');
+        // Global State variables
+        let uploadedFilesArray = [];
+        const recordsMap = new Map();
 
-        let loadedImage = null;
+        // DOM Nodes Hook
+        const uploadInput = document.getElementById('upload');
+        const btnConvert = document.getElementById('btn-convert');
+        const btnReset = document.getElementById('btn-reset');
+        const dropdownBtn = document.getElementById('download-dropdown-btn');
+        const downloadMenu = document.getElementById('download-menu');
+        const previewContainer = document.getElementById('preview-container');
+        const manualRadio = document.getElementById('mode-manual');
+        const autoRadio = document.getElementById('mode-auto');
+        const sliderContainer = document.getElementById('slider-container');
+        const manualSlider = document.getElementById('manual-threshold');
+        const sliderVal = document.getElementById('slider-val');
 
-        // Handle image upload
-        upload.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                loadedImage = new Image();
-                loadedImage.onload = function() {
-                    // Show elements and hide placeholders
-                    originalPreview.src = event.target.result;
-                    originalPreview.style.display = 'block';
-                    origPlaceholder.style.display = 'none';
-                    
-                    outputCanvas.style.display = 'block';
-                    canvasPlaceholder.style.display = 'none';
-
-                    // Run the filter
-                    processImage();
-                };
-                loadedImage.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+        // Toggle dropdown menu visibility
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadMenu.classList.toggle('show');
         });
+        document.addEventListener('click', () => downloadMenu.classList.remove('show'));
 
-        // Update threshold text and re-process image when slider moves
-        thresholdSlider.addEventListener('input', function() {
-            thresholdVal.textContent = this.value;
-            if (loadedImage) {
-                processImage();
-            }
-        });
-
-        // The core image processing engine
-        function processImage() {
-            if (!loadedImage) return;
-
-            const ctx = outputCanvas.getContext('2d');
-            
-            // Match canvas size to the source image
-            outputCanvas.width = loadedImage.naturalWidth;
-            outputCanvas.height = loadedImage.naturalHeight;
-
-            // Draw original image onto the canvas to grab its pixels
-            ctx.drawImage(loadedImage, 0, 0);
-
-            // Fetch the pixel array
-            const imgData = ctx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-            const data = imgData.data;
-            
-            // Get current slider threshold value
-            const threshold = parseInt(thresholdSlider.value, 10);
-
-            // Step through every pixel (4 elements per pixel: Red, Green, Blue, Alpha)
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];     // Red channel
-                const g = data[i + 1]; // Green channel
-                const b = data[i + 2]; // Blue channel
-
-                // Decision rule: Is the pixel dark enough to count as a shade of black?
-                // Checks if Red, Green, AND Blue are all under the threshold.
-                if (r < threshold && g < threshold && b < threshold) {
-                    // Turn it white
-                    data[i] = 255;     // R
-                    data[i + 1] = 255; // G
-                    data[i + 2] = 255; // B
+        // Toggle Manual Slider Accessibility UI
+        [autoRadio, manualRadio].forEach(radio => {
+            radio.addEventListener('change', () => {
+                if(manualRadio.checked) {
+                    sliderContainer.classList.add('active');
                 } else {
-                    // Turn it black
-                    data[i] = 0;       // R
-                    data[i + 1] = 0;   // G
-                    data[i + 2] = 0;   // B
+                    sliderContainer.classList.remove('active');
                 }
-                // data[i+3] is Alpha (transparency), we leave it untouched (255)
+            });
+        });
+
+        manualSlider.addEventListener('input', function() {
+            sliderVal.textContent = this.value;
+        });
+
+        // Batch File ingestion pipeline
+        uploadInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if(files.length === 0) return;
+            
+            uploadedFilesArray = [...uploadedFilesArray, ...files];
+            renderGridContainers(files);
+            updateDownloadMenuStructure();
+        });
+
+        // Setup clear visual viewports before heavy computations
+        function renderGridContainers(filesList) {
+            filesList.forEach(file => {
+                const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+                
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.id = `card-${uniqueId}`;
+                
+                card.innerHTML = `
+                    <div class="card-title" title="${file.name}">${file.name}</div>
+                    <div class="view-box">
+                        <canvas id="canvas-${uniqueId}"></canvas>
+                    </div>
+                    <div class="badge" id="badge-${uniqueId}">Awaiting processing...</div>
+                `;
+                
+                previewContainer.appendChild(card);
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.getElementById(`canvas-${uniqueId}`);
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Limit display sizes inside preview grids to manage layout memory gracefully
+                        const maxDisplayDim = 500;
+                        let w = img.naturalWidth;
+                        let h = img.naturalHeight;
+                        if(w > maxDisplayDim || h > maxDisplayDim) {
+                            if(w > h) { h = (maxDisplayDim/w)*h; w = maxDisplayDim; }
+                            else { w = (maxDisplayDim/h)*w; h = maxDisplayDim; }
+                        }
+                        
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        // Track state details
+                        recordsMap.set(uniqueId, { file, img, canvas, calculatedThreshold: 60 });
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Batch Image processing Execution Loop
+        btnConvert.addEventListener('click', () => {
+            if(recordsMap.size === 0) return alert("Please upload images first.");
+            
+            const isManual = manualRadio.checked;
+            const globalManualVal = parseInt(manualSlider.value, 10);
+
+            recordsMap.forEach((data, id) => {
+                const canvas = data.canvas;
+                const ctx = canvas.getContext('2d');
+                
+                // Redraw original to wipe older canvas changes
+                ctx.drawImage(data.img, 0, 0, canvas.width, canvas.height);
+                
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imgData.data;
+
+                let targetThreshold = globalManualVal;
+
+                if (!isManual) {
+                    // Adaptive calculation via Otsu Auto Histogram Analysis
+                    targetThreshold = computeOtsuThreshold(pixels);
+                    data.calculatedThreshold = targetThreshold;
+                }
+
+                // Core execution layer: evaluate luminance & isolate saturation levels
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i+1];
+                    const b = pixels[i+2];
+
+                    // Check for structural color saturation levels to preserve clean vector edges
+                    const maxChroma = Math.max(r, g, b);
+                    const minChroma = Math.min(r, g, b);
+                    const saturationFactor = maxChroma === 0 ? 0 : (maxChroma - minChroma) / maxChroma;
+
+                    // Standard balanced luminance calculation weights
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                    // Processing logic: target dark shades with low color saturation profile
+                    if (luminance < targetThreshold && saturationFactor < 0.25) {
+                        pixels[i] = 255;   // R
+                        pixels[i+1] = 255; // G
+                        pixels[i+2] = 255; // B
+                    } else {
+                        pixels[i] = 0;     // R
+                        pixels[i+1] = 0;   // G
+                        pixels[i+2] = 0;   // B
+                    }
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+                
+                const badge = document.getElementById(`badge-${id}`);
+                badge.textContent = `Threshold applied: ${targetThreshold} ${isManual ? '(Manual)' : '(Auto)'}`;
+                badge.style.background = '#065f46';
+                badge.style.color = '#a7f3d0';
+            });
+        });
+
+        // Otsu's Adaptive Automatic Threshold Binarization Math Algorithm
+        function computeOtsuThreshold(pixels) {
+            const histogram = new Array(256).fill(0);
+            const totalPixels = pixels.length / 4;
+
+            // Generate brightness distribution array
+            for (let i = 0; i < pixels.length; i += 4) {
+                const brightness = Math.round(0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2]);
+                histogram[brightness]++;
             }
 
-            // Repaint the modified pixels back down onto the canvas canvas
-            ctx.putImageData(imgData, 0, 0);
+            let sum = 0;
+            for (let i = 0; i < 256; i++) sum += i * histogram[i];
+
+            let sumB = 0;
+            let wB = 0;
+            let wF = 0;
+            let maxVariance = 0;
+            let thresholdValue = 60; // Safe default base fallback
+
+            for (let t = 0; t < 256; t++) {
+                wB += histogram[t];
+                if (wB === 0) continue;
+
+                wF = totalPixels - wB;
+                if (wF === 0) break;
+
+                sumB += t * histogram[t];
+
+                const mB = sumB / wB;
+                const mF = (sum - sumB) / wF;
+
+                // Inter-class variance calculation
+                const varianceBetween = wB * wF * (mB - mF) * (mB - mF);
+
+                if (varianceBetween > maxVariance) {
+                    maxVariance = varianceBetween;
+                    thresholdValue = t;
+                }
+            }
+
+            // Adjust values downward slightly to preserve details from black tone backgrounds
+            return Math.clamp(Math.round(thresholdValue * 0.85), 30, 140);
+        }
+
+        // Helper utilities
+        Math.clamp = (val, min, max) => Math.min(Math.max(val, min), max);
+
+        // Adjust UI context dynamically depending on single vs multiple assets loaded
+        function updateDownloadMenuStructure() {
+            const zipItem = document.getElementById('download-zip-item');
+            const pdfItem = document.getElementById('download-pdf-item');
+            const singleItem = document.getElementById('download-single-item');
+
+            if (recordsMap.size === 1) {
+                zipItem.style.display = 'none';
+                pdfItem.style.display = 'block';
+                singleItem.style.display = 'block';
+            } else {
+                zipItem.style.display = 'block';
+                pdfItem.style.display = 'block';
+                singleItem.style.display = 'none';
+            }
+        }
+
+        // Wipe global memory structures
+        btnReset.addEventListener('click', () => {
+            uploadedFilesArray = [];
+            recordsMap.clear();
+            previewContainer.innerHTML = '';
+            uploadInput.value = '';
+            updateDownloadMenuStructure();
+        });
+
+        // Pack Canvas items into download formats
+        document.getElementById('download-single-item').addEventListener('click', () => {
+            if(recordsMap.size !== 1) return;
+            const [id, data] = Array.from(recordsMap.entries())[0];
+            triggerDirectDownload(data.canvas, `filtered_${data.file.name}`);
+        });
+
+        document.getElementById('download-zip-item').addEventListener('click', async () => {
+            if(recordsMap.size === 0) return alert("No converted images available.");
+            
+            const zip = new JSZip();
+            let count = 0;
+
+            for (let [id, data] of recordsMap.entries()) {
+                const dataUrl = data.canvas.toDataURL('image/png');
+                const rawBase64 = dataUrl.split(',')[1];
+                
+                // Keep naming standard clean
+                const cleanedName = data.file.name.replace(/\.[^/.]+$/, "") + "_filtered.png";
+                zip.file(cleanedName, rawBase64, {base64: true});
+                count++;
+            }
+
+            const content = await zip.generateAsync({type: "blob"});
+            triggerBlobDownload(content, "converted_images_batch.zip");
+        });
+
+        document.getElementById('download-pdf-item').addEventListener('click', () => {
+            if(recordsMap.size === 0) return alert("No images to write into PDF format.");
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'px', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            let isFirstPage = true;
+
+            recordsMap.forEach((data) => {
+                if (!isFirstPage) {
+                    pdf.addPage();
+                }
+                isFirstPage = false;
+
+                const imgData = data.canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Aspect scaling math calculations inside standard A4 canvas sizing rules
+                const canvasRatio = data.canvas.width / data.canvas.height;
+                let printWidth = pdfWidth - 40; 
+                let printHeight = printWidth / canvasRatio;
+
+                if (printHeight > (pdfHeight - 40)) {
+                    printHeight = pdfHeight - 40;
+                    printWidth = printHeight * canvasRatio;
+                }
+
+                const posX = (pdfWidth - printWidth) / 2;
+                const posY = (pdfHeight - printHeight) / 2;
+
+                pdf.setFillColor(18, 18, 18); // Dark background fill matching application theme
+                pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+                pdf.addImage(imgData, 'JPEG', posX, posY, printWidth, printHeight);
+            });
+
+            pdf.save("batch_converted_document.pdf");
+        });
+
+        function triggerDirectDownload(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function triggerBlobDownload(blob, filename) {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>
