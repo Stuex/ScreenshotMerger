@@ -3,536 +3,501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Multi-Image Shadow Isolator</title>
-    
-    <!-- Third-party libraries for purely client-side ZIP & PDF downloads -->
+    <title>Batch Shadow Isolation Studio</title>
+    <!-- External Libraries for Zip & PDF compilation inside the browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: #121212;
             color: #e0e0e0;
-            padding: 30px 20px;
+            padding: 20px;
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { color: #ffffff; margin-bottom: 5px; font-weight: 600; }
-        .subtitle { color: #888; margin-bottom: 30px; text-align: center; }
+        h1 { color: #ffffff; margin-bottom: 5px; text-align: center;}
+        p { color: #a0a0a0; text-align: center; margin-bottom: 25px; max-width: 600px;}
 
-        .dashboard {
+        .controls {
             background-color: #1e1e1e;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            width: 100%;
-            max-width: 900px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 30px;
         }
 
-        .action-bar {
+        .control-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 20px;
             align-items: center;
         }
 
-        /* Custom File Input button style */
-        .file-upload-btn {
-            background-color: #2563eb;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        .file-upload-btn:hover { background-color: #1d4ed8; }
-        input[type="file"] { display: none; }
-
-        button {
-            padding: 10px 20px;
-            border-radius: 6px;
-            border: none;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary { background-color: #059669; color: white; }
-        .btn-primary:hover { background-color: #047857; }
-        
-        .btn-secondary { background-color: #374151; color: #e5e7eb; }
-        .btn-secondary:hover { background-color: #4b5563; }
-
-        /* Dropdown Layout */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: #2a2a2a;
+        .control-group {
+            flex: 1;
             min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.5);
-            border-radius: 6px;
-            z-index: 10;
-            overflow: hidden;
-        }
-        .dropdown-content a {
-            color: #e0e0e0;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .dropdown-content a:hover { background-color: #3f3f3f; color: #fff; }
-        .show { display: block; }
-
-        /* Threshold Mode Configuration */
-        .threshold-config {
-            background-color: #161616;
-            padding: 15px;
-            border-radius: 8px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            border: 1px solid #2d2d2d;
+            gap: 5px;
         }
-        .mode-toggle {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        .slider-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            opacity: 0.4;
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        .slider-wrapper.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        input[type="range"] { flex-grow: 1; accent-color: #2563eb; }
 
-        /* Gallery/Preview Grid layout */
-        .preview-grid {
+        label { font-size: 14px; font-weight: bold; color: #fff; }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] { flex-grow: 1; }
+        .value-display { font-family: monospace; width: 30px; text-align: right; }
+
+        /* Batch Export Actions styling */
+        .batch-actions {
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1d4ed8; }
+        button:disabled { background-color: #4b5563; cursor: not-allowed; opacity: 0.6; }
+        button.secondary { background-color: #059669; }
+        button.secondary:hover { background-color: #047857; }
+
+        /* Dynamic Processing Grid layout */
+        .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
             width: 100%;
-            max-width: 940px;
-            margin-top: 25px;
+            max-width: 1400px;
         }
-        .image-card {
+
+        .item-card {
             background-color: #1e1e1e;
             border-radius: 8px;
             padding: 12px;
-            border: 1px solid #2d2d2d;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
-        .card-title {
-            font-size: 13px;
-            color: #aaa;
-            white-space: nowrap;
+
+        .item-name {
+            font-size: 12px;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #aaa;
         }
-        .view-box {
+
+        .preview-box {
+            display: flex;
+            gap: 8px;
+            height: 180px;
+        }
+
+        .preview-box div {
+            flex: 1;
             background-color: #0b0b0b;
             border-radius: 4px;
-            height: 200px;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            position: relative;
+            border: 1px solid #333;
         }
-        .view-box canvas {
+
+        .preview-box span {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 5px;
+            font-size: 9px;
+            border-radius: 3px;
+        }
+
+        .preview-box img, .preview-box canvas {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
         }
-        .badge {
+
+        .preview-box canvas { cursor: zoom-in; }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .item-actions button {
+            flex: 1;
+            padding: 6px;
             font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #334155;
-            color: #94a3b8;
-            align-self: flex-start;
+            background-color: #374151;
+        }
+        .item-actions button:hover { background-color: #4b5563; }
+
+        /* Lightbox Overlay UI */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: #ef4444; color: white;
+            border: none; border-radius: 50%;
+            width: 44px; height: 44px;
+            font-size: 22px; font-weight: bold;
+            cursor: pointer; z-index: 1010;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .modal-close:hover { background: #dc2626; }
+
+        .modal-content-wrapper {
+            position: relative;
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: grab;
+        }
+        .modal-content-wrapper:active { cursor: grabbing; }
+
+        #modal-canvas {
+            max-width: 90%; max-height: 90%;
+            object-fit: contain;
+            transition: transform 0.05s ease-out;
+            transform-origin: center center;
+        }
+
+        .zoom-tip {
+            position: absolute; bottom: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; color: #ccc;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <h1>Advanced Batch Shadow Isolator</h1>
-    <div class="subtitle">Convert deep shadows/blacks into pure white, and strip colorful or light pixels into solid black backgrounds.</div>
+    <h1>Batch Shadow Isolation Studio</h1>
+    <p>Upload multiple images simultaneously. Convert dark shades to white and colorful regions to pure black.</p>
 
-    <div class="dashboard">
-        <div class="action-bar">
-            <label class="file-upload-btn" for="upload">Upload Images</label>
-            <input type="file" id="upload" accept="image/*" multiple>
+    <div class="controls">
+        <div class="control-row">
+            <div class="control-group">
+                <label for="upload">Upload Images (Multi-select allowed)</label>
+                <input type="file" id="upload" accept="image/*" multiple>
+            </div>
             
-            <button class="btn-primary" id="btn-convert">Convert Batch</button>
-            <button class="btn-secondary" id="btn-reset">Reset</button>
-            
-            <!-- Download Options Menu -->
-            <div class="dropdown" style="margin-left: auto;">
-                <button class="btn-secondary" id="download-dropdown-btn" style="background-color: #047857; color: white;">Download ▼</button>
-                <div class="dropdown-content" id="download-menu">
-                    <a id="download-zip-item">Download as Images (ZIP)</a>
-                    <a id="download-pdf-item">Download as Single PDF</a>
-                    <a id="download-single-item" style="display:none;">Download Filtered Image</a>
+            <div class="control-group">
+                <label for="threshold">Darkness Threshold: <span id="threshold-val" class="value-display">60</span></label>
+                <div class="slider-container">
+                    <input type="range" id="threshold" min="0" max="255" value="60">
                 </div>
             </div>
         </div>
-
-        <div class="threshold-config">
-            <div class="mode-toggle">
-                <label style="font-weight: 600;">Threshold Calculation Engine:</label>
-                <input type="radio" id="mode-auto" name="th-mode" value="auto" checked>
-                <label for="mode-auto">Adaptive Auto-Detect (Otsu Analysis)</label>
-                
-                <input type="radio" id="mode-manual" name="th-mode" value="manual">
-                <label for="mode-manual">Manual Override</label>
-            </div>
-            
-            <div class="slider-wrapper" id="slider-container">
-                <label for="manual-threshold">Global Adjust Threshold:</label>
-                <input type="range" id="manual-threshold" min="0" max="255" value="60">
-                <span id="slider-val" style="font-family: monospace; width: 30px;">60</span>
-            </div>
+        
+        <div class="batch-actions">
+            <button id="btn-zip" disabled>Download Processed Batch (.ZIP)</button>
+            <button id="btn-pdf" class="secondary" disabled>Compile All to Document (.PDF)</button>
         </div>
     </div>
 
-    <!-- Live Dynamic Batch Previews -->
-    <div class="preview-grid" id="preview-container"></div>
+    <div class="gallery-grid" id="gallery"></div>
+
+    <!-- Interactive Lightbox Modal Framework -->
+    <div class="modal" id="lightbox">
+        <button class="modal-close" id="modal-close" title="Close Preview">&times;</button>
+        <div class="modal-content-wrapper" id="modal-wrapper">
+            <canvas id="modal-canvas"></canvas>
+        </div>
+        <div class="zoom-tip">Use mouse wheel or pinch to zoom. Click and drag to pan.</div>
+    </div>
 
     <script>
-        // Global State variables
-        let uploadedFilesArray = [];
-        const recordsMap = new Map();
-
-        // DOM Nodes Hook
         const uploadInput = document.getElementById('upload');
-        const btnConvert = document.getElementById('btn-convert');
-        const btnReset = document.getElementById('btn-reset');
-        const dropdownBtn = document.getElementById('download-dropdown-btn');
-        const downloadMenu = document.getElementById('download-menu');
-        const previewContainer = document.getElementById('preview-container');
-        const manualRadio = document.getElementById('mode-manual');
-        const autoRadio = document.getElementById('mode-auto');
-        const sliderContainer = document.getElementById('slider-container');
-        const manualSlider = document.getElementById('manual-threshold');
-        const sliderVal = document.getElementById('slider-val');
+        const thresholdSlider = document.getElementById('threshold');
+        const thresholdVal = document.getElementById('threshold-val');
+        const gallery = document.getElementById('gallery');
+        const btnZip = document.getElementById('btn-zip');
+        const btnPdf = document.getElementById('btn-pdf');
+        
+        // Modal Selectors
+        const lightbox = document.getElementById('lightbox');
+        const modalCanvas = document.getElementById('modal-canvas');
+        const modalClose = document.getElementById('modal-close');
+        const modalWrapper = document.getElementById('modal-wrapper');
 
-        // Toggle dropdown menu visibility
-        dropdownBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            downloadMenu.classList.toggle('show');
-        });
-        document.addEventListener('click', () => downloadMenu.classList.remove('show'));
+        let imageFilesArray = [];
+        // Interactive state tracking for modal magnification engine
+        let zoomScale = 1;
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
 
-        // Toggle Manual Slider Accessibility UI
-        [autoRadio, manualRadio].forEach(radio => {
-            radio.addEventListener('change', () => {
-                if(manualRadio.checked) {
-                    sliderContainer.classList.add('active');
-                } else {
-                    sliderContainer.classList.remove('active');
-                }
-            });
-        });
-
-        manualSlider.addEventListener('input', function() {
-            sliderVal.textContent = this.value;
-        });
-
-        // Batch File ingestion pipeline
         uploadInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             if(files.length === 0) return;
             
-            uploadedFilesArray = [...uploadedFilesArray, ...files];
-            renderGridContainers(files);
-            updateDownloadMenuStructure();
-        });
-
-        // Setup clear visual viewports before heavy computations
-        function renderGridContainers(filesList) {
-            filesList.forEach(file => {
-                const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-                
-                const card = document.createElement('div');
-                card.className = 'image-card';
-                card.id = `card-${uniqueId}`;
-                
-                card.innerHTML = `
-                    <div class="card-title" title="${file.name}">${file.name}</div>
-                    <div class="view-box">
-                        <canvas id="canvas-${uniqueId}"></canvas>
-                    </div>
-                    <div class="badge" id="badge-${uniqueId}">Awaiting processing...</div>
-                `;
-                
-                previewContainer.appendChild(card);
-
+            imageFilesArray = [];
+            gallery.innerHTML = '';
+            
+            files.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const img = new Image();
                     img.onload = function() {
-                        const canvas = document.getElementById(`canvas-${uniqueId}`);
-                        const ctx = canvas.getContext('2d');
+                        const fileRecord = {
+                            name: file.name,
+                            id: 'img-' + index,
+                            imgObject: img,
+                            base64Data: event.target.result
+                        };
+                        imageFilesArray.push(fileRecord);
+                        renderGalleryCard(fileRecord);
                         
-                        // Limit display sizes inside preview grids to manage layout memory gracefully
-                        const maxDisplayDim = 500;
-                        let w = img.naturalWidth;
-                        let h = img.naturalHeight;
-                        if(w > maxDisplayDim || h > maxDisplayDim) {
-                            if(w > h) { h = (maxDisplayDim/w)*h; w = maxDisplayDim; }
-                            else { w = (maxDisplayDim/h)*w; h = maxDisplayDim; }
+                        if(imageFilesArray.length === files.length) {
+                            toggleBatchButtons(true);
                         }
-                        
-                        canvas.width = w;
-                        canvas.height = h;
-                        ctx.drawImage(img, 0, 0, w, h);
-                        
-                        // Track state details
-                        recordsMap.set(uniqueId, { file, img, canvas, calculatedThreshold: 60 });
                     };
                     img.src = event.target.result;
                 };
                 reader.readAsDataURL(file);
             });
-        }
+        });
 
-        // Batch Image processing Execution Loop
-        btnConvert.addEventListener('click', () => {
-            if(recordsMap.size === 0) return alert("Please upload images first.");
-            
-            const isManual = manualRadio.checked;
-            const globalManualVal = parseInt(manualSlider.value, 10);
-
-            recordsMap.forEach((data, id) => {
-                const canvas = data.canvas;
-                const ctx = canvas.getContext('2d');
-                
-                // Redraw original to wipe older canvas changes
-                ctx.drawImage(data.img, 0, 0, canvas.width, canvas.height);
-                
-                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const pixels = imgData.data;
-
-                let targetThreshold = globalManualVal;
-
-                if (!isManual) {
-                    // Adaptive calculation via Otsu Auto Histogram Analysis
-                    targetThreshold = computeOtsuThreshold(pixels);
-                    data.calculatedThreshold = targetThreshold;
-                }
-
-                // Core execution layer: evaluate luminance & isolate saturation levels
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i];
-                    const g = pixels[i+1];
-                    const b = pixels[i+2];
-
-                    // Check for structural color saturation levels to preserve clean vector edges
-                    const maxChroma = Math.max(r, g, b);
-                    const minChroma = Math.min(r, g, b);
-                    const saturationFactor = maxChroma === 0 ? 0 : (maxChroma - minChroma) / maxChroma;
-
-                    // Standard balanced luminance calculation weights
-                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-
-                    // Processing logic: target dark shades with low color saturation profile
-                    if (luminance < targetThreshold && saturationFactor < 0.25) {
-                        pixels[i] = 255;   // R
-                        pixels[i+1] = 255; // G
-                        pixels[i+2] = 255; // B
-                    } else {
-                        pixels[i] = 0;     // R
-                        pixels[i+1] = 0;   // G
-                        pixels[i+2] = 0;   // B
-                    }
-                }
-
-                ctx.putImageData(imgData, 0, 0);
-                
-                const badge = document.getElementById(`badge-${id}`);
-                badge.textContent = `Threshold applied: ${targetThreshold} ${isManual ? '(Manual)' : '(Auto)'}`;
-                badge.style.background = '#065f46';
-                badge.style.color = '#a7f3d0';
+        thresholdSlider.addEventListener('input', function() {
+            thresholdVal.textContent = this.value;
+            imageFilesArray.forEach(fileRecord => {
+                processImageItem(fileRecord.id);
             });
         });
 
-        // Otsu's Adaptive Automatic Threshold Binarization Math Algorithm
-        function computeOtsuThreshold(pixels) {
-            const histogram = new Array(256).fill(0);
-            const totalPixels = pixels.length / 4;
+        function toggleBatchButtons(enabled) {
+            btnZip.disabled = !enabled;
+            btnPdf.disabled = !enabled;
+        }
 
-            // Generate brightness distribution array
-            for (let i = 0; i < pixels.length; i += 4) {
-                const brightness = Math.round(0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2]);
-                histogram[brightness]++;
-            }
+        function renderGalleryCard(fileRecord) {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.id = 'card-' + fileRecord.id;
+            
+            card.innerHTML = `
+                <div class="item-name" title="${fileRecord.name}">${fileRecord.name}</div>
+                <div class="preview-box">
+                    <div>
+                        <span>Src</span>
+                        <img src="${fileRecord.base64Data}" alt="Source">
+                    </div>
+                    <div>
+                        <span>Filter Output</span>
+                        <canvas id="canvas-${fileRecord.id}"></canvas>
+                    </div>
+                </div>
+                <div class="item-actions">
+                    <button onclick="downloadSingle('${fileRecord.id}', '${fileRecord.name}', 'image')">Save Image</button>
+                    <button onclick="downloadSingle('${fileRecord.id}', '${fileRecord.name}', 'pdf')">Save PDF</button>
+                </div>
+            `;
+            
+            gallery.appendChild(card);
+            processImageItem(fileRecord.id);
 
-            let sum = 0;
-            for (let i = 0; i < 256; i++) sum += i * histogram[i];
+            // Bind high-magnification click listener to the output node
+            const targetCanvas = document.getElementById(`canvas-${fileRecord.id}`);
+            targetCanvas.addEventListener('click', () => {
+                launchLightbox(targetCanvas);
+            });
+        }
 
-            let sumB = 0;
-            let wB = 0;
-            let wF = 0;
-            let maxVariance = 0;
-            let thresholdValue = 60; // Safe default base fallback
+        function processImageItem(id) {
+            const record = imageFilesArray.find(item => item.id === id);
+            if(!record) return;
 
-            for (let t = 0; t < 256; t++) {
-                wB += histogram[t];
-                if (wB === 0) continue;
+            const outCanvas = document.getElementById(`canvas-${id}`);
+            const ctx = outCanvas.getContext('2d');
+            const threshold = parseInt(thresholdSlider.value, 10);
 
-                wF = totalPixels - wB;
-                if (wF === 0) break;
+            outCanvas.width = record.imgObject.naturalWidth;
+            outCanvas.height = record.imgObject.naturalHeight;
+            ctx.drawImage(record.imgObject, 0, 0);
 
-                sumB += t * histogram[t];
+            const imgData = ctx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+            const data = imgData.data;
 
-                const mB = sumB / wB;
-                const mF = (sum - sumB) / wF;
-
-                // Inter-class variance calculation
-                const varianceBetween = wB * wF * (mB - mF) * (mB - mF);
-
-                if (varianceBetween > maxVariance) {
-                    maxVariance = varianceBetween;
-                    thresholdValue = t;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] < threshold && data[i+1] < threshold && data[i+2] < threshold) {
+                    data[i] = 255; data[i+1] = 255; data[i+2] = 255;
+                } else {
+                    data[i] = 0; data[i+1] = 0; data[i+2] = 0;
                 }
             }
-
-            // Adjust values downward slightly to preserve details from black tone backgrounds
-            return Math.clamp(Math.round(thresholdValue * 0.85), 30, 140);
+            ctx.putImageData(imgData, 0, 0);
         }
 
-        // Helper utilities
-        Math.clamp = (val, min, max) => Math.min(Math.max(val, min), max);
-
-        // Adjust UI context dynamically depending on single vs multiple assets loaded
-        function updateDownloadMenuStructure() {
-            const zipItem = document.getElementById('download-zip-item');
-            const pdfItem = document.getElementById('download-pdf-item');
-            const singleItem = document.getElementById('download-single-item');
-
-            if (recordsMap.size === 1) {
-                zipItem.style.display = 'none';
-                pdfItem.style.display = 'block';
-                singleItem.style.display = 'block';
-            } else {
-                zipItem.style.display = 'block';
-                pdfItem.style.display = 'block';
-                singleItem.style.display = 'none';
-            }
-        }
-
-        // Wipe global memory structures
-        btnReset.addEventListener('click', () => {
-            uploadedFilesArray = [];
-            recordsMap.clear();
-            previewContainer.innerHTML = '';
-            uploadInput.value = '';
-            updateDownloadMenuStructure();
-        });
-
-        // Pack Canvas items into download formats
-        document.getElementById('download-single-item').addEventListener('click', () => {
-            if(recordsMap.size !== 1) return;
-            const [id, data] = Array.from(recordsMap.entries())[0];
-            triggerDirectDownload(data.canvas, `filtered_${data.file.name}`);
-        });
-
-        document.getElementById('download-zip-item').addEventListener('click', async () => {
-            if(recordsMap.size === 0) return alert("No converted images available.");
+        // Single File Processing & Download triggers
+        window.downloadSingle = function(id, originalName, format) {
+            const canvas = document.getElementById(`canvas-${id}`);
+            const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
             
+            if(format === 'image') {
+                const link = document.createElement('a');
+                link.download = `${baseName}_isolated.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } else if(format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: canvas.width > canvas.height ? 'l' : 'p',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+                doc.save(`${baseName}_isolated.pdf`);
+            }
+        };
+
+        // Compilation of asynchronous Batch Export methods (ZIP and PDF generation)
+        btnZip.addEventListener('click', function() {
             const zip = new JSZip();
-            let count = 0;
-
-            for (let [id, data] of recordsMap.entries()) {
-                const dataUrl = data.canvas.toDataURL('image/png');
-                const rawBase64 = dataUrl.split(',')[1];
-                
-                // Keep naming standard clean
-                const cleanedName = data.file.name.replace(/\.[^/.]+$/, "") + "_filtered.png";
-                zip.file(cleanedName, rawBase64, {base64: true});
-                count++;
-            }
-
-            const content = await zip.generateAsync({type: "blob"});
-            triggerBlobDownload(content, "converted_images_batch.zip");
-        });
-
-        document.getElementById('download-pdf-item').addEventListener('click', () => {
-            if(recordsMap.size === 0) return alert("No images to write into PDF format.");
-            
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'px', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            let isFirstPage = true;
-
-            recordsMap.forEach((data) => {
-                if (!isFirstPage) {
-                    pdf.addPage();
-                }
-                isFirstPage = false;
-
-                const imgData = data.canvas.toDataURL('image/jpeg', 0.95);
-                
-                // Aspect scaling math calculations inside standard A4 canvas sizing rules
-                const canvasRatio = data.canvas.width / data.canvas.height;
-                let printWidth = pdfWidth - 40; 
-                let printHeight = printWidth / canvasRatio;
-
-                if (printHeight > (pdfHeight - 40)) {
-                    printHeight = pdfHeight - 40;
-                    printWidth = printHeight * canvasRatio;
-                }
-
-                const posX = (pdfWidth - printWidth) / 2;
-                const posY = (pdfHeight - printHeight) / 2;
-
-                pdf.setFillColor(18, 18, 18); // Dark background fill matching application theme
-                pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-                pdf.addImage(imgData, 'JPEG', posX, posY, printWidth, printHeight);
+            imageFilesArray.forEach(record => {
+                const canvas = document.getElementById(`canvas-${record.id}`);
+                const dataUrl = canvas.toDataURL('image/png').split(',')[1];
+                const baseName = record.name.substring(0, record.name.lastIndexOf('.')) || record.name;
+                zip.file(`${baseName}_isolated.png`, dataUrl, {base64: true});
             });
 
-            pdf.save("batch_converted_document.pdf");
+            zip.generateAsync({type: "blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.download = "processed_batch_images.zip";
+                link.href = URL.createObjectURL(content);
+                link.click();
+            });
         });
 
-        function triggerDirectDownload(canvas, filename) {
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        btnPdf.addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            let masterDoc = null;
+
+            imageFilesArray.forEach((record, index) => {
+                const canvas = document.getElementById(`canvas-${record.id}`);
+                const imgDataUrl = canvas.toDataURL('image/png');
+                const orientation = canvas.width > canvas.height ? 'l' : 'p';
+
+                if(index === 0) {
+                    masterDoc = new jsPDF({
+                        orientation: orientation,
+                        unit: 'px',
+                        format: [canvas.width, canvas.height]
+                    });
+                } else {
+                    masterDoc.addPage([canvas.width, canvas.height], orientation);
+                }
+                masterDoc.addImage(imgDataUrl, 'PNG', 0, 0, canvas.width, canvas.height);
+            });
+
+            if(masterDoc) {
+                masterDoc.save("batch_compiled_report.pdf");
+            }
+        });
+
+        // High-Magnification Lightbox Modal Core Logic
+        function launchLightbox(sourceCanvas) {
+            const mCtx = modalCanvas.getContext('2d');
+            modalCanvas.width = sourceCanvas.width;
+            modalCanvas.height = sourceCanvas.height;
+            mCtx.drawImage(sourceCanvas, 0, 0);
+
+            // Re-initialize geometric state rules
+            zoomScale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateModalTransform();
+
+            lightbox.style.display = 'flex';
         }
 
-        function triggerBlobDownload(blob, filename) {
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            window.URL.revokeObjectURL(url);
+        function closeLightbox() {
+            lightbox.style.display = 'none';
+        }
+
+        modalClose.addEventListener('click', closeLightbox);
+        
+        // Modal Exit Safeguard (Clicking structural workspace dark region closes view)
+        lightbox.addEventListener('click', function(e) {
+            if(e.target === lightbox || e.target === modalWrapper) {
+                closeLightbox();
+            }
+        });
+
+        // Scale modification via Mousewheel / Trackpad configuration logic
+        modalWrapper.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const zoomSpeed = 0.1;
+            if(e.deltaY < 0) {
+                zoomScale = Math.min(zoomScale + zoomSpeed, 10); // Clamp scale ceiling to 10x
+            } else {
+                zoomScale = Math.max(zoomScale - zoomSpeed, 0.5); // Clamp scale floor to 0.5x
+            }
+            updateModalTransform();
+        }, { passive: false });
+
+        // Event handler mappings for interactive coordinate translation panning
+        modalWrapper.addEventListener('mousedown', (e) => {
+            if (e.target !== modalClose) {
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateModalTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function updateModalTransform() {
+            modalCanvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomScale})`;
         }
     </script>
 </body>
